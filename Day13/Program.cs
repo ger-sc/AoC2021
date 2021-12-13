@@ -1,7 +1,4 @@
-﻿using System.ComponentModel.Design;
-using System.Drawing;
-using System.IO;
-using System.Net.NetworkInformation;
+﻿using System.Drawing;
 
 var input = File.ReadAllLines("input.txt");
 
@@ -17,7 +14,7 @@ foreach (var fold in folds.Skip(1)) {
 
 PrintResult(dots);
 
-void PrintResult(IList<Point> resultDots) {
+void PrintResult(ICollection<Point> resultDots) {
   for (var y = 0; y <= resultDots.Max(d => d.Y); y++) {
     for (var x = 0; x <= resultDots.Max(d => d.X); x++) {
       var point = new Point(x, y);
@@ -28,33 +25,24 @@ void PrintResult(IList<Point> resultDots) {
 }
 
 IList<Point> Fold(IList<Point> dotList, Point fold) {
-  if (fold.Y > -1) {
-    return FoldY(dotList, fold.Y);
-  }
-  else {
-    return FoldX(dotList, fold.X);
-  }
+  return fold.Y > -1 ? FoldY(dotList.ToList(), fold.Y) : FoldX(dotList.ToList(), fold.X);
 }
 
-IList<Point> FoldY(IList<Point> dotList, int foldLine) {
-  foreach (var dot in dotList.Where(d => d.Y > foldLine).ToList()) {
-    var diff = dot.Y - foldLine;
-    var newDot = new Point(dot.X, foldLine - diff);
-    if (!dotList.Contains(newDot)) {
-      dotList.Add(newDot);
-    }
-  }
+IList<Point> FoldY(List<Point> dotList, int foldLine) {
+  dotList.AddRange(dotList
+    .Where(d => d.Y > foldLine)
+    .ToList()
+    .Select(dot => new Point(dot.X, foldLine - (dot.Y - foldLine)))
+    .Where(newDot => !dotList.Contains(newDot)));
   return dotList.Where(d => d.Y < foldLine).ToList();
 }
 
-IList<Point> FoldX(IList<Point> dotList, int foldLine) {
-  foreach (var dot in dotList.Where(d => d.X > foldLine).ToList()) {
-    var diff = dot.X - foldLine;
-    var newDot = new Point(foldLine - diff, dot.Y);
-    if (!dotList.Contains(newDot)) {
-      dotList.Add(newDot);
-    }
-  }
+IList<Point> FoldX(List<Point> dotList, int foldLine) {
+  dotList.AddRange(dotList
+    .Where(d => d.X > foldLine)
+    .ToList()
+    .Select(dot => new Point(foldLine - (dot.X - foldLine), dot.Y))
+    .Where(newDot => !dotList.Contains(newDot)));
   return dotList.Where(d => d.X < foldLine).ToList();
 }
 
