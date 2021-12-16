@@ -9,33 +9,57 @@ var input = File.ReadAllText("input.txt")
 var reader = new Reader(input);
 
 long versionSum = 0;
+var result2 = EvaluatePackage(reader);
 
-while (!reader.EoF()) {
+Console.Out.WriteLine(versionSum);
+Console.Out.WriteLine(result2);
+
+long EvaluatePackage(Reader r) {
   var (version, typeId) = ReadHeader(reader);
   versionSum += version;
-  if (typeId == 4) {
-    var literal = ReadLiteral(reader);
-  }
-  else {
-    var length = ReadOperator(reader);
-    reader.Read(length);
+  
+  switch (typeId) {
+    case 0: //sum
+      return ReadOperator(reader).Sum();
+    case 1: //product
+      return ReadOperator(reader).Aggregate((l, l1) => l * l1);
+    case 2: //min
+      return ReadOperator(reader).Min();
+    case 3: //max
+      return ReadOperator(reader).Max();
+    case 4: //literal
+      return ReadLiteral(r);
+    case 5: //greater than
+      var gt = ReadOperator(r).ToList();
+      return gt[0] > gt[1] ? 1 : 0;
+    case 6: //less than
+      var lt = ReadOperator(r).ToList();
+      return lt[0] < lt[1] ? 1 : 0;
+    case 7: //eqal to
+      var eq = ReadOperator(r).ToList();
+      return eq[0] == eq[1] ? 1 : 0;
+    default:
+      throw new Exception("ohoh");
   }
 }
 
-Console.Out.WriteLine(versionSum);
-
-int ReadOperator(Reader r) {
-  var lengthOfSubs = r.Read() == "0" ? 15 : 11;
-  return lengthOfSubs;
-  var length = Convert.ToInt64(r.Read(lengthOfSubs));
-  var counter = 0L;
-  IEnumerable<long> literals;
-  while (counter < length) {
-    var (lit, litlen) = ReadLiteral(r);
-    counter += litlen;
+IEnumerable<long> ReadOperator(Reader r) {
+  var lengthTypeId = r.Read();
+  switch (lengthTypeId) {
+    case "0":
+      var lenInBits = Convert.ToInt64(r.Read(15), 2);
+      var currentPos = r.Position;
+      while (r.Position < currentPos + lenInBits) {
+        yield return EvaluatePackage(r);
+      }
+      break;
+    case "1":
+      var counter = Convert.ToInt64(r.Read(11), 2);
+      for (var i = 0; i < counter; i++) {
+        yield return EvaluatePackage(r);
+      }
+      break;
   }
-
-  return (int)(counter + 1L);
 }
 
 (long, long) ReadHeader(Reader r) {
@@ -44,7 +68,7 @@ int ReadOperator(Reader r) {
   return (v, t);
 }
 
-(long, long) ReadLiteral(Reader r) {
+long ReadLiteral(Reader r) {
   SkipZeros(r);
   var number = "";
   var finished = false;
@@ -53,7 +77,7 @@ int ReadOperator(Reader r) {
     number += r.Read(4);    
     finished = isLast;
   }
-  return (Convert.ToInt64(number, 2), number.Length);
+  return Convert.ToInt64(number, 2);
 }
 
 void SkipZeros(Reader r) {
@@ -62,27 +86,23 @@ void SkipZeros(Reader r) {
   }
 }
 
-class Reader {
-  private int _position;
+internal class Reader {
   private readonly string _input;
 
   public Reader(string input) {
     _input = input;
-    _position = 0;
+    Position = 0;
   }
 
-  public bool EoF() {
-    return _position == _input.Length;
-  }
-  
+  public int Position { get; private set; }
+
   public string Read(int count = 1) {
-    if (EoF()) return string.Empty;
-    var value = _input.Substring(_position, count);
-    _position += count;
+    var value = _input.Substring(Position, count);
+    Position += count;
     return value;
   }
 
   public string Peek(int count = 0) {
-    return EoF() ? string.Empty : _input.Substring(_position, count);
+    return _input.Substring(Position, count);
   }
 }
